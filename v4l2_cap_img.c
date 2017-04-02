@@ -37,7 +37,7 @@ void init_v4l2(int fd_video)
 	int i;
 
 	printf("\n[capability]\n");
-	if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_QUERYCAP,VIDIOC_ENUM_FMT, &cap) == -1)
+	if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_QUERYCAP, &cap) == -1)
 	{
 	}
 
@@ -50,7 +50,7 @@ void init_v4l2(int fd_video)
 	printf("\n[supported format]\n");
 	fmtdesc.index = 0;
 	fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	while(ioctl(fd_video, /*lab5.1_v4l2*/(VIDIOC_G_FMT,VIDIOC_S_FMT), &fmtdesc) != -1)
+	while(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_ENUM_FMT, &fmtdesc) != -1)
 	{
 		printf("description: %s\n", fmtdesc.description);
 		printf("fourcc: %c%c%c%c\n", fmtdesc.pixelformat & 0xff, fmtdesc.pixelformat >> 8 & 0xff, fmtdesc.pixelformat >> 16 & 0xff, fmtdesc.pixelformat >> 24 & 0xff);
@@ -74,11 +74,11 @@ void init_v4l2(int fd_video)
 	fmt.fmt.pix.height = HEIGHT;
 	fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
 
-	if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_REQBUFS, &fmt) == -1)
+	if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_S_FMT, &fmt) == -1)
 	{
 	}
 
-	if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_QUERYBUF, &fmt) == -1)
+	if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_G_FMT, &fmt) == -1)
 	{
 	}
 
@@ -94,7 +94,7 @@ void init_v4l2(int fd_video)
 	reqbufs.count = 16;
 	reqbufs.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	reqbufs.memory = V4L2_MEMORY_MMAP;
-	if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_QBUF, &reqbufs) == -1)
+	if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_REQBUFS, &reqbufs) == -1)
 	{
 	}
 	printf("buffer count: %u\n", reqbufs.count);
@@ -107,19 +107,19 @@ void init_v4l2(int fd_video)
 	for(i = 0; i < reqbufs.count; i++)
 	{
 		buf.index = i;
-		if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_STREAMON, &buf) == -1)
+		if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_QUERYBUF, &buf) == -1)
 		{
 		}
 
 		buf_infos[i].length = buf.length;
 		buf_infos[i].start = mmap(NULL, buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, fd_video, buf.m.offset);
 
-		if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_DQBUF, &buf) == -1)
+		if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_QBUF, &buf) == -1)
 		{
 		}
 	}
 
-	if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_QBUF, &reqbufs.type) == -1)
+	if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_STREAMON, &reqbufs.type) == -1)
 	{
 	}
 
@@ -143,7 +143,7 @@ int main(int argc, char* argv[])
 	uint8_t* p_img;
 	uint32_t offset;
 
-	if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_STREAMOFF, &buf) == -1)
+	if(ioctl(fd_video, /*lab5.1_v4l2*/VIDIOC_DQBUF, &buf) == -1)
 	{
 	}
 
@@ -187,12 +187,17 @@ int main(int argc, char* argv[])
 		perror("VIDIOC_QBUF");
 	}
 
+
+	if(ioctl(fd_video, VIDIOC_STREAMOFF, &buf) == -1)
+	{
+	}
+
 	for(i = 0; i < reqbufs.count; i++)
 	{
 		munmap(buf_infos[i].start, buf_infos[i].length);
 	}
 	free(buf_infos);
-
+	
 	close(fd_video);
 
 	return 0;
